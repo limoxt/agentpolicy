@@ -125,14 +125,16 @@ export default function ReportCard({ result }: { result: ScanResult }) {
       )}
 
       {/* Generator CTA */}
-      <div className="rounded-3xl border border-ink/10 bg-white/60 px-6 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-ink/50">Next step</p>
-          <p className="mt-1 font-semibold">Generate your agent-policy.json and ai.txt in 30 seconds</p>
-          <p className="mt-1 text-sm text-ink/60">Free — publish the files to your root domain to immediately reduce exposure.</p>
+      <div className="relative overflow-hidden rounded-[28px] bg-ink px-7 py-7 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-lagoon/25 blur-2xl" />
+        <div className="absolute bottom-0 left-1/3 h-20 w-40 rounded-full bg-apricot/15 blur-2xl" />
+        <div className="relative space-y-2">
+          <span className="inline-flex items-center rounded-full bg-lagoon/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-lagoon">Fix it now — free</span>
+          <p className="text-xl font-bold tracking-tight text-sand">Generate your agent-policy.json and ai.txt in 30 seconds</p>
+          <p className="text-sm text-sand/60">Publish two files to your root domain and instantly reduce your exposure score.</p>
         </div>
-        <Link href={`/generator?url=${encodeURIComponent(result.targetUrl)}`} className="btn-primary shrink-0">
-          Generate Policy — Free
+        <Link href={`/generator?url=${encodeURIComponent(result.targetUrl)}`} className="relative shrink-0 inline-flex items-center justify-center rounded-full bg-lagoon px-7 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-lagoon/80">
+          Generate Policy — Free &rarr;
         </Link>
       </div>
     </div>
