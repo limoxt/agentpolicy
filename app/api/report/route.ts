@@ -71,7 +71,7 @@ async function buildPdf(result: ScanResult): Promise<Uint8Array> {
     const detailLines = f.detail.match(/.{1,90}(\s|$)/g) ?? [f.detail];
     for (const dl of detailLines) { text(dl.trim(), M + 8, y, 8.5, regular, [0.2, 0.2, 0.2]); y -= 12; }
     if (f.recommendation) {
-      const recLines = (`→ ${f.recommendation}`).match(/.{1,90}(\s|$)/g) ?? [f.recommendation];
+      const recLines = (`>> ${f.recommendation}`).match(/.{1,90}(\s|$)/g) ?? [f.recommendation];
       for (const rl of recLines) { text(rl.trim(), M + 8, y, 8, regular, [0.4, 0.4, 0.4]); y -= 12; }
     }
     y -= 10;
