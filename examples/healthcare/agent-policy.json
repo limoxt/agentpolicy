@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "description": "Healthcare: strict data protection. Agents may read general health information only. Patient-facing forms, appointment booking, and any data collection are prohibited.",
+  "read_access": "conditional",
+  "read_access_conditions": "General public health information pages only. Patient portals, appointment systems, and pages containing PHI are disallowed.",
+  "form_submission": "disallowed",
+  "data_collection": "disallowed",
+  "purchase_authority": "disallowed",
+  "rate_limit": {
+    "requests_per_minute": 5,
+    "requests_per_day": 100,
+    "crawl_delay_seconds": 12
+  },
+  "contact": "privacy@example-health.com",
+  "last_updated": "2025-01-01"
+}

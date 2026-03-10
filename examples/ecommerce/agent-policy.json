@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "description": "E-commerce: agents may browse products but must not submit checkout forms or collect customer PII.",
+  "read_access": "allowed",
+  "form_submission": "conditional",
+  "form_submission_conditions": "Search and product filter forms only. Checkout, account creation, and payment forms are disallowed.",
+  "data_collection": "disallowed",
+  "purchase_authority": "disallowed",
+  "rate_limit": {
+    "requests_per_minute": 20,
+    "requests_per_day": 2000,
+    "crawl_delay_seconds": 3
+  },
+  "contact": "ai-policy@example-shop.com",
+  "last_updated": "2025-01-01"
+}

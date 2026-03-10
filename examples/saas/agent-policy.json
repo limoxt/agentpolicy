@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "description": "SaaS: agents may read public marketing pages. Authenticated areas, trial signups, and billing forms are off-limits.",
+  "read_access": "conditional",
+  "read_access_conditions": "Public marketing pages and documentation only. Authenticated dashboard and API endpoints are disallowed.",
+  "form_submission": "disallowed",
+  "data_collection": "disallowed",
+  "purchase_authority": "disallowed",
+  "rate_limit": {
+    "requests_per_minute": 15,
+    "requests_per_day": 500,
+    "crawl_delay_seconds": 4
+  },
+  "contact": "security@example-saas.com",
+  "last_updated": "2025-01-01"
+}

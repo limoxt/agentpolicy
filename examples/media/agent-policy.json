@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "description": "Media / publishing: agents may index headlines and summaries. Full article text behind paywall and comment forms are restricted.",
+  "read_access": "conditional",
+  "read_access_conditions": "Headlines, article metadata, and publicly visible summaries are allowed. Full article body behind paywall or login is disallowed. Do not reproduce article text verbatim.",
+  "form_submission": "disallowed",
+  "data_collection": "disallowed",
+  "purchase_authority": "disallowed",
+  "rate_limit": {
+    "requests_per_minute": 10,
+    "requests_per_day": 1000,
+    "crawl_delay_seconds": 6
+  },
+  "contact": "syndication@example-media.com",
+  "last_updated": "2025-01-01"
+}
