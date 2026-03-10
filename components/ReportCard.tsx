@@ -1,7 +1,27 @@
 "use client";
+import { useState } from "react";
 import type { ScanResult } from "@/lib/scanner";
+
 function statusClass(s: string) { return s === "present" ? "finding-present" : s === "warning" ? "finding-warning" : "finding-missing"; }
+
 export default function ReportCard({ result }: { result: ScanResult }) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleBuyReport() {
+    setLoading(true);
+    try {
+      const r = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUrl: result.targetUrl }),
+      });
+      const data = (await r.json()) as { url?: string; error?: string };
+      if (data.url) window.location.href = data.url;
+      else alert(data.error || "Failed to start checkout.");
+    } catch { alert("Failed to start checkout."); }
+    finally { setLoading(false); }
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-[0.7fr_1.3fr]">
@@ -13,7 +33,14 @@ export default function ReportCard({ result }: { result: ScanResult }) {
         <div className="rounded-[28px] bg-white/75 p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div><p className="pill">Scan outcome</p><h2 className="mt-4 text-2xl font-bold tracking-tight">{result.grade} — {result.targetUrl}</h2></div>
-            <button type="button" className="btn-primary" onClick={() => window.alert("PDF reports not live yet.")}>Download PDF Report — $29</button>
+            <button
+              type="button"
+              className="btn-primary whitespace-nowrap"
+              onClick={handleBuyReport}
+              disabled={loading}
+            >
+              {loading ? "Redirecting..." : "Download PDF Report — $29"}
+            </button>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {Object.entries(result.headers).map(([h, v]) => (

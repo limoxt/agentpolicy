@@ -9,9 +9,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@types/pdfkit": "^0.17.5",
     "next": "^14.2.0",
+    "pdfkit": "^0.17.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "stripe": "^20.4.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",
