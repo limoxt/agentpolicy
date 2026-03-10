@@ -15,12 +15,12 @@ function QuickWins({ findings }: { findings: ScanFinding[] }) {
   return (
     <div className="rounded-3xl border border-lagoon/20 bg-lagoon/5 px-6 py-5">
       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-lagoon">Quick wins</p>
-      <p className="mt-1 text-sm text-ink/70">Fix these {sorted.length} items to reduce your score by <span className="font-bold text-lagoon">{saved} points</span></p>
+      <p className="mt-1 text-sm text-ink/70">Fix these {sorted.length} items to increase your score by <span className="font-bold text-lagoon">{saved} points</span></p>
       <ol className="mt-4 space-y-2">
         {sorted.map((f, i) => (
           <li key={f.id} className="flex items-start gap-3 text-sm">
             <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-lagoon/15 text-xs font-bold text-lagoon">{i + 1}</span>
-            <span className="text-ink/80"><span className="font-semibold">{f.label}</span> — saves {f.impact} pts. {f.recommendation}</span>
+            <span className="text-ink/80"><span className="font-semibold">{f.label}</span> — adds {f.impact} pts. {f.recommendation}</span>
           </li>
         ))}
       </ol>
@@ -60,7 +60,7 @@ export default function ReportCard({ result }: { result: ScanResult }) {
             <p className="pb-2 text-sand/65">/100</p>
           </div>
           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-sand/50">Benchmark</p>
-          <p className="mt-1 text-sm text-sand/70">Most sites score 78–95. Lower is better.</p>
+          <p className="mt-1 text-sm text-sand/70">Most sites score 5–22. Higher is better.</p>
         </div>
         <div className="rounded-[28px] bg-white/75 p-6 flex flex-col justify-between gap-4">
           <div>

@@ -138,7 +138,7 @@ async function buildPdf(result: ScanResult): Promise<Uint8Array> {
   // ── BENCHMARK ─────────────────────────────────────────────────────────────
   need(36);
   drawText("BENCHMARK", ML, 7, fontBold, MGRAY);
-  drawText("Most sites score 78-95. Lower is better.", ML + 76, 8.5, fontReg, INK);
+  drawText("Most sites score 5-22. Higher is better.", ML + 76, 8.5, fontReg, INK);
   gap(14);
   need(18);
   page.drawRectangle({ x: ML, y: y - 8, width: CW, height: 8, color: rgb(...LGRAY) });

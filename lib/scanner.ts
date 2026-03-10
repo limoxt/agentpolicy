@@ -58,17 +58,19 @@ function hasLlmsContent(body: string | null): boolean {
 }
 
 function grade(s: number) {
-  return s <= 15 ? "AI-Ready" : s <= 35 ? "Mostly Ready" : s <= 55 ? "Partially Ready" : s <= 75 ? "Needs Work" : "Not AI-Ready";
+  // s is the readiness score 0-100 (higher = better)
+  return s >= 85 ? "AI-Ready" : s >= 65 ? "Mostly Ready" : s >= 45 ? "Partially Ready" : s >= 25 ? "Needs Work" : "Not AI-Ready";
 }
 
 function summary(s: number) {
-  return s <= 15
+  // s is the readiness score 0-100 (higher = better)
+  return s >= 85
     ? "This site publishes strong AI readiness signals and is well-positioned for agent and LLM discovery."
-    : s <= 35
+    : s >= 65
     ? "This site has some AI readiness signals in place but a few important items are missing."
-    : s <= 55
+    : s >= 45
     ? "This site has partial AI readiness. Adding the missing signals would meaningfully improve LLM discoverability."
-    : s <= 75
+    : s >= 25
     ? "This site is missing most AI readiness signals. Agents and LLMs have limited structured guidance to work with."
     : "This site currently provides very little AI readiness infrastructure. Most signals are absent.";
 }
@@ -139,12 +141,13 @@ export async function scanSite(inputUrl: string): Promise<ScanResult> {
     }
   }
 
+  const readinessScore = Math.max(0, 100 - score);
   return {
     targetUrl: hp.targetUrl,
     scannedAt: new Date().toISOString(),
-    exposureScore: Math.min(score, 100),
-    grade: grade(score),
-    summary: summary(score),
+    exposureScore: readinessScore,
+    grade: grade(readinessScore),
+    summary: summary(readinessScore),
     findings,
     headers: hp.headers,
   };
