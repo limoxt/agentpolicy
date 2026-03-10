@@ -118,7 +118,7 @@ export default function ReportCard({ result }: { result: ScanResult }) {
                   <p className="mt-2 text-sm leading-6 text-current/90">{f.detail}</p>
                   {f.recommendation && <p className="mt-1 text-sm text-current/70">Fix: {f.recommendation}</p>}
                 </div>
-                <span className="shrink-0 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-current">+{f.impact} pts</span>
+                <span className="shrink-0 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-current">fix +{f.impact}</span>
               </div>
             </div>
           ))}
