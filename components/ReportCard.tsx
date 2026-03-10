@@ -14,12 +14,8 @@ function QuickWins({ findings }: { findings: ScanFinding[] }) {
   const saved = sorted.reduce((acc, f) => acc + f.impact, 0);
   return (
     <div className="rounded-3xl border border-lagoon/20 bg-lagoon/5 px-6 py-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-lagoon">Quick wins</p>
-          <p className="mt-1 text-sm text-ink/70">Fix these {sorted.length} items to reduce your score by <span className="font-bold text-lagoon">{saved} points</span></p>
-        </div>
-      </div>
+      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-lagoon">Quick wins</p>
+      <p className="mt-1 text-sm text-ink/70">Fix these {sorted.length} items to reduce your score by <span className="font-bold text-lagoon">{saved} points</span></p>
       <ol className="mt-4 space-y-2">
         {sorted.map((f, i) => (
           <li key={f.id} className="flex items-start gap-3 text-sm">
@@ -34,9 +30,8 @@ function QuickWins({ findings }: { findings: ScanFinding[] }) {
 
 export default function ReportCard({ result }: { result: ScanResult }) {
   const [loading, setLoading] = useState(false);
-
   const present = result.findings.filter((f) => f.status === "present");
-  const issues = result.findings.filter((f) => f.status !== "present");
+  const issues  = result.findings.filter((f) => f.status !== "present");
 
   async function handleBuyReport() {
     setLoading(true);
@@ -55,10 +50,11 @@ export default function ReportCard({ result }: { result: ScanResult }) {
 
   return (
     <div className="space-y-6">
-      {/* Score + CTA */}
+
+      {/* Score row */}
       <div className="grid gap-4 lg:grid-cols-[0.7fr_1.3fr]">
         <div className="rounded-[28px] bg-ink p-6 text-sand">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sand/65">Exposure score</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sand/65">AI Readiness Score</p>
           <div className="mt-5 flex items-end gap-3">
             <p className="font-heading text-6xl font-bold">{result.exposureScore}</p>
             <p className="pb-2 text-sand/65">/100</p>
@@ -73,18 +69,41 @@ export default function ReportCard({ result }: { result: ScanResult }) {
             <p className="mt-1 text-sm text-ink/60 break-all">{result.targetUrl}</p>
             <p className="mt-2 text-sm text-ink/70">{result.summary}</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" className="btn-primary" onClick={handleBuyReport} disabled={loading}>
-              {loading ? "Redirecting..." : "Download PDF Report — $29"}
-            </button>
-          </div>
+          <button type="button" className="btn-primary self-start" onClick={handleBuyReport} disabled={loading}>
+            {loading ? "Redirecting..." : "Download PDF Report — $29"}
+          </button>
         </div>
       </div>
+
+      {/* ── PRIMARY CTA — immediately after score, before findings ── */}
+      <Link
+        href={`/generator?url=${encodeURIComponent(result.targetUrl)}`}
+        className="group relative flex flex-col gap-3 overflow-hidden rounded-[28px] bg-apricot px-7 py-6 md:flex-row md:items-center md:justify-between"
+      >
+        {/* glow blobs */}
+        <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/20 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 right-10 h-28 w-32 rounded-full bg-ink/10 blur-2xl" />
+
+        <div className="relative space-y-1">
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/70">Fix it now — free</p>
+          <p className="text-xl font-bold tracking-tight text-white">
+            Generate your llms.txt + llms-full.txt in 30 seconds
+          </p>
+          <p className="text-sm text-white/75">
+            Publish two files at your domain root and AI agents will have structured guidance immediately.
+          </p>
+        </div>
+
+        <span className="relative shrink-0 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-bold text-apricot shadow-lg transition group-hover:bg-white/90">
+          Generate for free
+          <span className="text-base transition-transform group-hover:translate-x-1">→</span>
+        </span>
+      </Link>
 
       {/* Quick wins */}
       <QuickWins findings={result.findings} />
 
-      {/* Issues */}
+      {/* Needs attention */}
       {issues.length > 0 && (
         <div className="space-y-3">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-ink/50">Needs attention ({issues.length})</p>
@@ -106,7 +125,7 @@ export default function ReportCard({ result }: { result: ScanResult }) {
         </div>
       )}
 
-      {/* Already good */}
+      {/* Already in place */}
       {present.length > 0 && (
         <div className="space-y-3">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-ink/50">Already in place ({present.length})</p>
@@ -124,19 +143,6 @@ export default function ReportCard({ result }: { result: ScanResult }) {
         </div>
       )}
 
-      {/* Generator CTA */}
-      <div className="relative overflow-hidden rounded-[28px] bg-ink px-7 py-7 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-lagoon/25 blur-2xl" />
-        <div className="absolute bottom-0 left-1/3 h-20 w-40 rounded-full bg-apricot/15 blur-2xl" />
-        <div className="relative space-y-2">
-          <span className="inline-flex items-center rounded-full bg-lagoon/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-lagoon">Fix it now — free</span>
-          <p className="text-xl font-bold tracking-tight text-sand">Generate your llms.txt and llms-full.txt in 30 seconds</p>
-          <p className="text-sm text-sand/60">Publish two files to your root domain and AI agents will immediately have structured guidance for your site.</p>
-        </div>
-        <Link href={`/generator?url=${encodeURIComponent(result.targetUrl)}`} className="relative shrink-0 inline-flex items-center justify-center rounded-full bg-lagoon px-7 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-lagoon/80">
-          Generate llms.txt — Free &rarr;
-        </Link>
-      </div>
     </div>
   );
 }
