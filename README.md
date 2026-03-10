@@ -1,124 +1,113 @@
-# agentpolicy
+# agentpolicy — Is your site AI-ready?
 
-**The AI Agent Access Control Standard**
+Free tools to generate and audit the AI readiness signals your website publishes.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Contributors Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Status: Draft](https://img.shields.io/badge/status-draft-orange.svg)]()
-
-> Define what AI agents are allowed to do on your site — before they do it.
-
-**🛠 Generator + Scanner → [agentpolicy.vercel.app](https://agentpolicy.vercel.app)**
+**Live:** https://agentpolicy.vercel.app
 
 ---
 
-## The Problem
+## What this is
 
-AI agents — crawlers, shopping bots, voice assistants, autonomous research tools — interact with websites in ways `robots.txt` was never designed to govern. They submit forms, extract PII, initiate purchases, and operate at machine speed. Site operators have no standard way to express intent, and agents have no standard way to ask for permission.
+AI agents and LLMs are increasingly crawling, summarising, and interacting with websites. Without clear signals, they have no structured guidance on what your site is, what they can access, or how to use your content correctly.
 
-`agent-policy.json` and `ai.txt` fill that gap: a machine-readable contract between operators and AI systems, designed for the agentic web.
+This project checks five public signals:
+
+| Signal | What it does |
+|--------|-------------|
+| `robots.txt` | Tells crawlers which pages they can access |
+| `llms.txt` | Concise LLM guidance — what your site is and how AI can use it |
+| `llms-full.txt` | Extended site reference with pages, APIs, and usage patterns |
+| `/api/search?q=` | Lets agents search your content programmatically |
+| HTTP headers | X-Robots-Tag, CSP, Permissions-Policy, rate-limit signals |
+
+`llms.txt` and `llms-full.txt` were proposed by Jeremy Howard (fast.ai) as an emerging standard for LLM-readable site summaries, similar to how `robots.txt` and `sitemap.xml` serve crawlers.
 
 ---
 
-## Two Complementary Formats
+## Features
 
-| Format | Location | Purpose |
-|--------|----------|---------|
-| `agent-policy.json` | `/.well-known/agent-policy.json` | Structured, machine-readable policy with granular per-capability controls |
-| `ai.txt` | `/ai.txt` | Human-readable plain-text summary; mirrors `robots.txt` conventions |
+### llms.txt Generator (free)
+- Input a URL and industry type
+- Generates `llms.txt` (concise) and `llms-full.txt` (extended) files
+- Industry presets: e-commerce, finance, healthcare, media, SaaS, developer tools, other
+- Download and publish at your domain root
 
-**Use both.** `agent-policy.json` is the authoritative source. `ai.txt` is the human-scannable companion.
+### AI Readiness Scanner
+- Scans any public website for all five signals
+- Returns a 0-100 readiness score with plain-English grade
+- Quick Wins list: top 3 fixes ranked by score impact
+- Splits findings into "Needs attention" and "Already in place"
+- Full PDF report available for $29 (Stripe)
 
 ---
 
-## Quick Start
+## Local development
 
-### Option 1 — Generate automatically
-
-Visit **[agentpolicy.vercel.app](https://agentpolicy.vercel.app)**, enter your URL and industry, and download a ready-made `agent-policy.json` + `ai.txt` pair in seconds.
-
-### Option 2 — Write manually
-
-Create `/.well-known/agent-policy.json` on your server:
-
-```json
-{
-  "version": "1.0",
-  "read_access": "allowed",
-  "form_submission": "disallowed",
-  "data_collection": "disallowed",
-  "purchase_authority": "disallowed",
-  "rate_limit": { "requests_per_minute": 30 }
-}
+```bash
+git clone https://github.com/limoxt/agentpolicy
+cd agentpolicy
+npm install
 ```
 
----
+Create a `.env.local` file:
 
-## Field Reference
-
-| Field | Type | Values | Description |
-|-------|------|--------|-------------|
-| `version` | string | `"1.0"` | Spec version (required) |
-| `read_access` | string | `allowed` \| `disallowed` \| `conditional` | Whether agents may read page content |
-| `form_submission` | string | `allowed` \| `disallowed` \| `conditional` | Whether agents may submit forms |
-| `data_collection` | string | `allowed` \| `disallowed` \| `conditional` | Whether agents may extract or store user data |
-| `purchase_authority` | string | `allowed` \| `disallowed` \| `conditional` | Whether agents may initiate or complete purchases |
-| `rate_limit` | object | — | Request frequency controls (`requests_per_minute`, `requests_per_day`, `crawl_delay_seconds`) |
-| `contact` | string | email or URL | Policy contact |
-| `last_updated` | string | ISO 8601 | When this policy was last revised |
-
-When a field is `conditional`, add a sibling `_conditions` key with a plain-text explanation:
-
-```json
-{
-  "form_submission": "conditional",
-  "form_submission_conditions": "Search forms only. Checkout and account creation are disallowed."
-}
+```
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
----
+Run the dev server:
 
-## Industry Examples
+```bash
+npm run dev
+```
 
-See [`examples/`](examples/) for ready-to-use configurations:
-
-| Industry | File |
-|----------|------|
-| E-commerce | [examples/ecommerce/agent-policy.json](examples/ecommerce/agent-policy.json) |
-| SaaS | [examples/saas/agent-policy.json](examples/saas/agent-policy.json) |
-| Healthcare | [examples/healthcare/agent-policy.json](examples/healthcare/agent-policy.json) |
-| Media / Publishing | [examples/media/agent-policy.json](examples/media/agent-policy.json) |
+Open http://localhost:3000
 
 ---
 
-## Spec
+## Deployment
 
-Full format specifications:
+This project is designed for Vercel.
 
-- [`spec/agent-policy.json.md`](spec/agent-policy.json.md) — JSON format, field semantics, compliance rules
-- [`spec/ai.txt.md`](spec/ai.txt.md) — Plain-text companion format
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy to production
+vercel deploy --prod
+```
+
+Set environment variables in the Vercel dashboard:
+- `STRIPE_SECRET_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+
+---
+
+## Tech stack
+
+- **Framework:** Next.js 14 (App Router)
+- **Language:** TypeScript (strict mode)
+- **Styling:** Tailwind CSS
+- **Payments:** Stripe Checkout
+- **PDF generation:** pdf-lib
+- **Deployment:** Vercel
 
 ---
 
 ## Roadmap
 
-- [x] v1.0 core field set
-- [x] Generator + scanner at [agentpolicy.vercel.app](https://agentpolicy.vercel.app)
-- [x] Industry presets (e-commerce, SaaS, healthcare, media, finance)
-- [ ] JSON Schema for validation tooling
-- [ ] CLI validator: `npx check-agent-policy https://example.com`
-- [ ] Per-path policy overrides (`path_overrides`)
-- [ ] Agent identity assertions (`agent_allowlist`, `agent_blocklist`)
-- [ ] Cryptographic signing support
+- [ ] Monthly monitoring subscription
+- [ ] Email PDF delivery
+- [ ] Markdown page export (`/page.md` endpoints)
+- [ ] `Cmd+K` search integration check
+- [ ] Bulk scan for multiple domains
+- [ ] API access for developers
 
 ---
 
-## Contributing
+## References
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Open an issue to discuss spec changes before submitting a PR.
-
----
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+- [llms.txt standard](https://llmstxt.org) — Jeremy Howard / fast.ai
+- [robots.txt specification](https://www.robotstxt.org)
+- [AI readiness discussion](https://x.com/search?q=llms.txt)

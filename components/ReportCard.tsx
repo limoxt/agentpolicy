@@ -130,11 +130,11 @@ export default function ReportCard({ result }: { result: ScanResult }) {
         <div className="absolute bottom-0 left-1/3 h-20 w-40 rounded-full bg-apricot/15 blur-2xl" />
         <div className="relative space-y-2">
           <span className="inline-flex items-center rounded-full bg-lagoon/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-lagoon">Fix it now — free</span>
-          <p className="text-xl font-bold tracking-tight text-sand">Generate your agent-policy.json and ai.txt in 30 seconds</p>
-          <p className="text-sm text-sand/60">Publish two files to your root domain and instantly reduce your exposure score.</p>
+          <p className="text-xl font-bold tracking-tight text-sand">Generate your llms.txt and llms-full.txt in 30 seconds</p>
+          <p className="text-sm text-sand/60">Publish two files to your root domain and AI agents will immediately have structured guidance for your site.</p>
         </div>
         <Link href={`/generator?url=${encodeURIComponent(result.targetUrl)}`} className="relative shrink-0 inline-flex items-center justify-center rounded-full bg-lagoon px-7 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-lagoon/80">
-          Generate Policy — Free &rarr;
+          Generate llms.txt — Free &rarr;
         </Link>
       </div>
     </div>

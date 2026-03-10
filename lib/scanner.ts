@@ -2,12 +2,13 @@ type FindingStatus = "present" | "missing" | "warning" | "error";
 export interface ScanFinding { id: string; label: string; status: FindingStatus; detail: string; recommendation?: string; impact: number; }
 export interface ScanResult { targetUrl: string; scannedAt: string; exposureScore: number; grade: string; summary: string; findings: ScanFinding[]; headers: Record<string, string | null>; }
 
-const REQ_HEADERS = { "user-agent": "agentpolicy-scanner/0.1 (+https://agentpolicy.local)" };
+const REQ_HEADERS = { "user-agent": "agentpolicy-scanner/0.2 (+https://agentpolicy.vercel.app)" };
+
 const HEADER_SPECS = [
-  { key: "x-robots-tag", label: "X-Robots-Tag header", impact: 8, recommendation: "Mirror crawl and indexing rules at the HTTP layer for assets and non-HTML responses." },
-  { key: "content-security-policy", label: "Content-Security-Policy header", impact: 5, recommendation: "Ship a CSP to reduce browser-based abuse on pages agents may open or summarize." },
-  { key: "permissions-policy", label: "Permissions-Policy header", impact: 5, recommendation: "Reduce default browser capabilities when agents or automation load pages." },
-  { key: "x-ratelimit-limit", label: "Rate limit header", impact: 10, recommendation: "Expose request ceilings with standard rate limit headers or publish them in agent policy files." }
+  { key: "x-robots-tag",         label: "X-Robots-Tag header",         impact: 8,  recommendation: "Mirror crawl and indexing rules at the HTTP layer for non-HTML responses." },
+  { key: "content-security-policy", label: "Content-Security-Policy",   impact: 5,  recommendation: "Publish a CSP to reduce abuse risk when agents or automation load pages." },
+  { key: "permissions-policy",   label: "Permissions-Policy header",    impact: 5,  recommendation: "Restrict default browser capabilities for automated clients." },
+  { key: "x-ratelimit-limit",    label: "Rate limit header",            impact: 8,  recommendation: "Expose request ceilings via standard rate-limit headers so agents self-throttle." },
 ] as const;
 
 function normalizeUrl(input: string): string {
@@ -38,44 +39,113 @@ async function probeHeaders(url: string) {
   }
 }
 
-function hasPolicy(body: string | null): boolean {
-  if (!body) return false;
-  try { const p = JSON.parse(body) as { rules?: Record<string, unknown> }; return !!p.rules && ["readAccess","formSubmission","purchaseActions","dataCollection","rateLimits"].every(k => k in p.rules!); }
-  catch { return false; }
+async function probeSearchApi(origin: string): Promise<{ ok: boolean; url: string; detail: string }> {
+  const url = `${origin}/api/search?q=test`;
+  try {
+    const r = await fetch(url, { cache: "no-store", headers: REQ_HEADERS, signal: AbortSignal.timeout(6000) });
+    if (r.ok || r.status === 400) {
+      return { ok: true, url, detail: `Search API responded at ${url} (HTTP ${r.status}).` };
+    }
+    return { ok: false, url, detail: `Search endpoint returned HTTP ${r.status}.` };
+  } catch {
+    return { ok: false, url, detail: `No response from ${url}.` };
+  }
 }
 
-function grade(s: number) { return s <= 20 ? "Low exposure" : s <= 40 ? "Guarded" : s <= 60 ? "Moderate exposure" : s <= 80 ? "Exposed" : "High exposure"; }
-function summary(s: number) { return s <= 20 ? "The site publishes most of the expected agent governance signals." : s <= 40 ? "The site has some public controls in place, but coverage is incomplete." : s <= 60 ? "The site exposes meaningful ambiguity to crawlers and AI agents." : s <= 80 ? "The site is missing major public controls and would benefit from explicit agent rules." : "The site currently offers very little published guidance or rate governance for agents."; }
+function hasLlmsContent(body: string | null): boolean {
+  if (!body || body.length < 20) return false;
+  return body.includes("#") || body.includes("http") || body.length > 80;
+}
+
+function grade(s: number) {
+  return s <= 15 ? "AI-Ready" : s <= 35 ? "Mostly Ready" : s <= 55 ? "Partially Ready" : s <= 75 ? "Needs Work" : "Not AI-Ready";
+}
+
+function summary(s: number) {
+  return s <= 15
+    ? "This site publishes strong AI readiness signals and is well-positioned for agent and LLM discovery."
+    : s <= 35
+    ? "This site has some AI readiness signals in place but a few important items are missing."
+    : s <= 55
+    ? "This site has partial AI readiness. Adding the missing signals would meaningfully improve LLM discoverability."
+    : s <= 75
+    ? "This site is missing most AI readiness signals. Agents and LLMs have limited structured guidance to work with."
+    : "This site currently provides very little AI readiness infrastructure. Most signals are absent.";
+}
 
 export async function scanSite(inputUrl: string): Promise<ScanResult> {
   const targetUrl = normalizeUrl(inputUrl);
   const origin = new URL(targetUrl).origin;
-  const [robots, aiTxt, agentPolicy, hp] = await Promise.all([
+
+  const [robots, llms, llmsFull, hp, searchApi] = await Promise.all([
     probeFile(new URL("/robots.txt", origin).toString()),
-    probeFile(new URL("/ai.txt", origin).toString()),
-    probeFile(new URL("/agent-policy.json", origin).toString()),
-    probeHeaders(origin)
+    probeFile(new URL("/llms.txt", origin).toString()),
+    probeFile(new URL("/llms-full.txt", origin).toString()),
+    probeHeaders(origin),
+    probeSearchApi(origin),
   ]);
+
   const findings: ScanFinding[] = [];
   let score = 0;
 
-  if (robots.ok) { findings.push({ id: "robots-present", label: "robots.txt", status: "present", detail: `Found at ${robots.url} (HTTP ${robots.statusCode}).`, impact: 0 }); }
-  else { score += 18; findings.push({ id: "robots-missing", label: "robots.txt", status: "missing", detail: `No robots.txt at ${robots.url}.`, recommendation: "Publish at least a minimal robots.txt.", impact: 18 }); }
+  // robots.txt
+  if (robots.ok) {
+    findings.push({ id: "robots-present", label: "robots.txt", status: "present", detail: `Found at ${robots.url} (HTTP ${robots.statusCode}).`, impact: 0 });
+  } else {
+    score += 15;
+    findings.push({ id: "robots-missing", label: "robots.txt", status: "missing", detail: `No robots.txt at ${robots.url}.`, recommendation: "Publish a robots.txt to give crawlers and AI agents explicit access rules.", impact: 15 });
+  }
 
-  if (aiTxt.ok) { findings.push({ id: "ai-present", label: "ai.txt", status: "present", detail: `Found at ${aiTxt.url} (HTTP ${aiTxt.statusCode}).`, impact: 0 }); }
-  else { score += 18; findings.push({ id: "ai-missing", label: "ai.txt", status: "missing", detail: `No ai.txt at ${aiTxt.url}.`, recommendation: "Publish human-readable AI agent guidance.", impact: 18 }); }
+  // llms.txt
+  if (llms.ok && hasLlmsContent(llms.body)) {
+    findings.push({ id: "llms-present", label: "llms.txt", status: "present", detail: `Found at ${llms.url} (HTTP ${llms.statusCode}).`, impact: 0 });
+  } else if (llms.ok) {
+    score += 10;
+    findings.push({ id: "llms-warning", label: "llms.txt", status: "warning", detail: `llms.txt exists but appears to have very little content.`, recommendation: "Add structured sections describing your site, key URLs, and usage guidance for LLMs.", impact: 10 });
+  } else {
+    score += 24;
+    findings.push({ id: "llms-missing", label: "llms.txt", status: "missing", detail: `No llms.txt at ${llms.url}.`, recommendation: "Publish llms.txt to give LLMs a structured summary of your site and how to use your content.", impact: 24 });
+  }
 
-  if (!agentPolicy.ok) { score += 24; findings.push({ id: "policy-missing", label: "agent-policy.json", status: "missing", detail: `No policy file at ${agentPolicy.url}.`, recommendation: "Publish agent-policy.json for machine-readable rules.", impact: 24 }); }
-  else if (!hasPolicy(agentPolicy.body)) { score += 12; findings.push({ id: "policy-warning", label: "agent-policy.json", status: "warning", detail: "Policy file found but missing required rule sections.", recommendation: "Include readAccess, formSubmission, purchaseActions, dataCollection, rateLimits.", impact: 12 }); }
-  else { findings.push({ id: "policy-present", label: "agent-policy.json", status: "present", detail: `Structured policy found at ${agentPolicy.url}.`, impact: 0 }); }
+  // llms-full.txt
+  if (llmsFull.ok && hasLlmsContent(llmsFull.body)) {
+    findings.push({ id: "llms-full-present", label: "llms-full.txt", status: "present", detail: `Found at ${llmsFull.url} (HTTP ${llmsFull.statusCode}).`, impact: 0 });
+  } else {
+    score += 14;
+    findings.push({ id: "llms-full-missing", label: "llms-full.txt", status: "missing", detail: `No llms-full.txt at ${llmsFull.url}.`, recommendation: "Publish llms-full.txt with a comprehensive index of your site's pages, docs, and API endpoints.", impact: 14 });
+  }
 
-  if ("error" in hp && hp.error) { score += 8; findings.push({ id: "header-error", label: "HTTP headers", status: "error", detail: `Header probe failed: ${hp.error}.`, recommendation: "Confirm root URL responds to HEAD/GET.", impact: 8 }); }
+  // /api/search endpoint
+  if (searchApi.ok) {
+    findings.push({ id: "search-present", label: "/api/search endpoint", status: "present", detail: searchApi.detail, impact: 0 });
+  } else {
+    score += 12;
+    findings.push({ id: "search-missing", label: "/api/search endpoint", status: "missing", detail: searchApi.detail, recommendation: "Expose a /api/search?q= endpoint so AI agents can search your content programmatically.", impact: 12 });
+  }
+
+  // HTTP headers
+  if ("error" in hp && hp.error) {
+    score += 6;
+    findings.push({ id: "header-error", label: "HTTP headers", status: "error", detail: `Header probe failed: ${hp.error}.`, recommendation: "Confirm your root URL responds to HEAD or GET requests.", impact: 6 });
+  }
 
   for (const spec of HEADER_SPECS) {
     const val = hp.headers[spec.key];
-    if (val) { findings.push({ id: `${spec.key}-present`, label: spec.label, status: "present", detail: `${spec.label} present: "${val}".`, impact: 0 }); }
-    else { score += spec.impact; findings.push({ id: `${spec.key}-missing`, label: spec.label, status: "missing", detail: `${spec.label} not detected.`, recommendation: spec.recommendation, impact: spec.impact }); }
+    if (val) {
+      findings.push({ id: `${spec.key}-present`, label: spec.label, status: "present", detail: `${spec.label} present: "${val}".`, impact: 0 });
+    } else {
+      score += spec.impact;
+      findings.push({ id: `${spec.key}-missing`, label: spec.label, status: "missing", detail: `${spec.label} not detected.`, recommendation: spec.recommendation, impact: spec.impact });
+    }
   }
 
-  return { targetUrl: hp.targetUrl, scannedAt: new Date().toISOString(), exposureScore: Math.min(score, 100), grade: grade(score), summary: summary(score), findings, headers: hp.headers };
+  return {
+    targetUrl: hp.targetUrl,
+    scannedAt: new Date().toISOString(),
+    exposureScore: Math.min(score, 100),
+    grade: grade(score),
+    summary: summary(score),
+    findings,
+    headers: hp.headers,
+  };
 }
