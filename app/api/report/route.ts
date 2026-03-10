@@ -1,58 +1,101 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import PDFDocument from "pdfkit";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { scanSite, type ScanResult } from "@/lib/scanner";
 
 export const dynamic = "force-dynamic";
 
-function buildPdf(result: ScanResult): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
-    const chunks: Buffer[] = [];
-    doc.on("data", (c: Buffer) => chunks.push(c));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
+function hex(h: string): [number, number, number] {
+  const n = parseInt(h.replace("#", ""), 16);
+  return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255];
+}
 
-    doc.fontSize(24).font("Helvetica-Bold").text("AI Agent Exposure Report", { align: "center" });
-    doc.moveDown(0.5);
-    doc.fontSize(12).font("Helvetica").fillColor("#666")
-      .text(`Generated: ${new Date(result.scannedAt).toUTCString()}`, { align: "center" });
-    doc.moveDown(0.3).text(`Target: ${result.targetUrl}`, { align: "center" });
-    doc.moveDown(1.5);
+async function buildPdf(result: ScanResult): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
 
-    doc.fontSize(16).font("Helvetica-Bold").fillColor("#000").text("Exposure Score");
-    doc.moveDown(0.3);
-    const scoreColor = result.exposureScore > 60 ? "#8F2D56" : result.exposureScore > 30 ? "#F4A261" : "#0F766E";
-    doc.fontSize(48).fillColor(scoreColor).text(`${result.exposureScore}/100`, { align: "center" });
-    doc.fontSize(14).fillColor("#333").text(result.grade, { align: "center" });
-    doc.moveDown(0.5);
-    doc.fontSize(11).fillColor("#555").font("Helvetica").text(result.summary, { align: "center" });
-    doc.moveDown(1.5);
+  const W = 595, H = 842, M = 50;
+  let page = doc.addPage([W, H]);
+  let y = H - M;
 
-    doc.fontSize(16).font("Helvetica-Bold").fillColor("#000").text("Detailed Findings");
-    doc.moveDown(0.5);
+  function text(str: string, x: number, yPos: number, size: number, font = regular, color: [number, number, number] = [0, 0, 0]) {
+    page.drawText(str, { x, y: yPos, size, font, color: rgb(...color) });
+  }
 
-    for (const f of result.findings) {
-      const color = f.status === "present" ? "#0F766E" : f.status === "warning" ? "#F4A261" : "#8F2D56";
-      doc.fontSize(12).font("Helvetica-Bold").fillColor(color).text(`${f.label}  [${f.status.toUpperCase()}]`);
-      doc.fontSize(10).font("Helvetica").fillColor("#333").text(f.detail, { indent: 10 });
-      if (f.recommendation) doc.fontSize(10).fillColor("#666").text(`→ ${f.recommendation}`, { indent: 10 });
-      doc.moveDown(0.5);
+  function line(yPos: number) {
+    page.drawLine({ start: { x: M, y: yPos }, end: { x: W - M, y: yPos }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
+  }
+
+  function checkPage(needed = 40) {
+    if (y < M + needed) { page = doc.addPage([W, H]); y = H - M; }
+  }
+
+  // Header
+  text("AI Agent Exposure Report", M, y, 22, bold);
+  y -= 28;
+  text(`Target: ${result.targetUrl}`, M, y, 10, regular, [0.4, 0.4, 0.4]);
+  y -= 16;
+  text(`Scanned: ${new Date(result.scannedAt).toUTCString()}`, M, y, 10, regular, [0.4, 0.4, 0.4]);
+  y -= 24;
+  line(y); y -= 20;
+
+  // Score box
+  const scoreColor: [number, number, number] = result.exposureScore > 60 ? hex("#8F2D56") : result.exposureScore > 30 ? hex("#F4A261") : hex("#0F766E");
+  page.drawRectangle({ x: M, y: y - 80, width: 160, height: 90, color: rgb(0.06, 0.14, 0.11) });
+  text("EXPOSURE SCORE", M + 10, y - 16, 8, bold, [0.8, 0.8, 0.8]);
+  text(`${result.exposureScore}`, M + 10, y - 58, 40, bold, scoreColor);
+  text("/100", M + 68, y - 48, 16, regular, [0.7, 0.7, 0.7]);
+  text(result.grade, M + 10, y - 76, 9, bold, scoreColor);
+
+  const summaryWords = result.summary.match(/.{1,70}(\s|$)/g) ?? [result.summary];
+  let sy = y - 12;
+  text("Summary", M + 175, sy, 11, bold);
+  sy -= 16;
+  for (const line of summaryWords) { text(line.trim(), M + 175, sy, 9, regular, [0.3, 0.3, 0.3]); sy -= 14; }
+
+  y -= 110; line(y); y -= 20;
+
+  // Findings
+  text("Detailed Findings", M, y, 14, bold); y -= 22;
+
+  for (const f of result.findings) {
+    checkPage(55);
+    const fColor: [number, number, number] = f.status === "present" ? hex("#0F766E") : f.status === "warning" ? hex("#c07010") : hex("#8F2D56");
+    const bgColor: [number, number, number] = f.status === "present" ? [0.94, 0.98, 0.97] : f.status === "warning" ? [0.99, 0.96, 0.88] : [0.98, 0.93, 0.95];
+    const rowH = f.recommendation ? 58 : 44;
+    page.drawRectangle({ x: M, y: y - rowH + 6, width: W - 2 * M, height: rowH, color: rgb(...bgColor) });
+    text(`${f.label}`, M + 8, y, 10, bold, fColor);
+    text(`[${f.status.toUpperCase()}]  +${f.impact}`, W - M - 80, y, 8, bold, fColor);
+    y -= 14;
+    const detailLines = f.detail.match(/.{1,90}(\s|$)/g) ?? [f.detail];
+    for (const dl of detailLines) { text(dl.trim(), M + 8, y, 8.5, regular, [0.2, 0.2, 0.2]); y -= 12; }
+    if (f.recommendation) {
+      const recLines = (`→ ${f.recommendation}`).match(/.{1,90}(\s|$)/g) ?? [f.recommendation];
+      for (const rl of recLines) { text(rl.trim(), M + 8, y, 8, regular, [0.4, 0.4, 0.4]); y -= 12; }
     }
+    y -= 10;
+  }
 
-    doc.addPage();
-    doc.fontSize(16).font("Helvetica-Bold").fillColor("#000").text("HTTP Header Scan");
-    doc.moveDown(0.5);
-    for (const [k, v] of Object.entries(result.headers)) {
-      doc.fontSize(10).font("Helvetica-Bold").fillColor("#333").text(k, { continued: true });
-      doc.font("Helvetica").fillColor("#555").text(`  ${v || "Not detected"}`);
-    }
+  checkPage(80);
+  line(y); y -= 20;
 
-    doc.moveDown(1.5);
-    doc.fontSize(9).fillColor("#999").font("Helvetica")
-      .text("Generated by agentpolicy.vercel.app — AI Agent Policy Generator + Exposure Scanner", { align: "center" });
-    doc.end();
-  });
+  // HTTP Headers
+  text("HTTP Header Scan", M, y, 14, bold); y -= 22;
+  for (const [k, v] of Object.entries(result.headers)) {
+    checkPage(30);
+    text(k, M, y, 9, bold, [0.2, 0.2, 0.2]);
+    text(v || "Not detected", M + 180, y, 9, regular, v ? [0.1, 0.1, 0.1] : [0.6, 0.6, 0.6]);
+    y -= 16;
+  }
+
+  // Footer on last page
+  checkPage(20);
+  y = M + 10;
+  line(y); y -= 14;
+  text("Generated by agentpolicy.vercel.app — AI Agent Policy Generator + Exposure Scanner", M, y, 7.5, regular, [0.6, 0.6, 0.6]);
+
+  return doc.save();
 }
 
 export async function GET(request: NextRequest) {
@@ -78,6 +121,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (e) {
+    console.error("report error:", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "Report generation failed." }, { status: 500 });
   }
 }
