@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+
+@layer base {
+  * { @apply border-ink/10; }
+  body {
+    @apply min-h-screen bg-sand text-ink antialiased;
+    background-image:
+      radial-gradient(circle at top left, rgba(244, 162, 97, 0.28), transparent 28%),
+      radial-gradient(circle at top right, rgba(15, 118, 110, 0.18), transparent 32%),
+      linear-gradient(180deg, #fcfaf5 0%, #f6f1e7 100%);
+  }
+  h1, h2, h3, h4, .font-heading { font-family: var(--font-heading), sans-serif; }
+}
+
+@layer components {
+  .page-shell { @apply mx-auto w-full max-w-6xl px-6 py-10 md:px-8 md:py-12; }
+  .panel { @apply rounded-[28px] border border-ink/10 bg-white/75 shadow-soft backdrop-blur-sm; }
+  .subtle-panel { @apply rounded-[24px] border border-ink/10 bg-mist/70; }
+  .label { @apply mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-ink/55; }
+  .field { @apply w-full rounded-2xl border border-ink/10 bg-white/90 px-4 py-3 text-sm text-ink placeholder:text-ink/35 focus:border-lagoon focus:outline-none focus:ring-2 focus:ring-lagoon/20; }
+  .btn-primary { @apply inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand transition hover:bg-lagoon disabled:cursor-not-allowed disabled:bg-ink/50; }
+  .btn-secondary { @apply inline-flex items-center justify-center rounded-full border border-ink/15 bg-white/80 px-5 py-3 text-sm font-semibold text-ink transition hover:border-lagoon hover:text-lagoon; }
+  .pill { @apply inline-flex items-center rounded-full border border-ink/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink/60; }
+  .finding-present { @apply border-lagoon/20 bg-lagoon/10 text-lagoon; }
+  .finding-warning { @apply border-apricot/20 bg-apricot/15 text-ink; }
+  .finding-missing, .finding-error { @apply border-berry/20 bg-berry/10 text-berry; }
+}
